@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/ktr0731/go-fuzzyfinder"
@@ -63,7 +64,7 @@ func (m Menu) getPrefix() (string, error) {
 	}
 	now := time.Now()
 	ts := now.Format("20060102")
-	return fmt.Sprintf("%s_%s", ts, n), nil
+	return fmt.Sprintf("%s_%s_", ts, n), nil
 }
 
 func (m Menu) getName() (string, error) {
@@ -75,7 +76,12 @@ func (m Menu) getName() (string, error) {
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
 	n := scanner.Text()
-	return fmt.Sprintf("%s_%s", p, n), nil
+	n = strings.TrimPrefix(n, "_")
+	n = strings.TrimSpace(n)
+	if len(n) < 1 {
+		return "", fmt.Errorf("input cancelled")
+	}
+	return (p + n), nil
 }
 
 func run(path string) int {
