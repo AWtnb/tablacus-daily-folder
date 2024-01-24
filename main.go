@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"flag"
 	"fmt"
 	"os"
@@ -55,14 +56,26 @@ func (m Menu) pick() (string, error) {
 	return m.options[idx].Prefix, nil
 }
 
-func (m Menu) getName() (string, error) {
+func (m Menu) getPrefix() (string, error) {
 	n, err := m.pick()
 	if err != nil {
 		return "", err
 	}
 	now := time.Now()
 	ts := now.Format("20060102")
-	return fmt.Sprintf("%s_%s_", ts, n), nil
+	return fmt.Sprintf("%s_%s", ts, n), nil
+}
+
+func (m Menu) getName() (string, error) {
+	p, err := m.getPrefix()
+	if err != nil {
+		return "", err
+	}
+	fmt.Printf("Enter after '%s': ", p)
+	scanner := bufio.NewScanner(os.Stdin)
+	scanner.Scan()
+	n := scanner.Text()
+	return fmt.Sprintf("%s_%s", p, n), nil
 }
 
 func run(path string) int {
