@@ -22,11 +22,12 @@ func main() {
 }
 
 type Rule struct {
-	Names []string
+	Prefix      string
+	Description string
 }
 
 type Menu struct {
-	options []string
+	options []Rule
 }
 
 func (m *Menu) load(path string) error {
@@ -34,23 +35,24 @@ func (m *Menu) load(path string) error {
 	if err != nil {
 		return err
 	}
-	var rule Rule
-	if err := yaml.Unmarshal(buf, &rule); err != nil {
+	rules := []Rule{}
+	if err := yaml.Unmarshal(buf, &rules); err != nil {
 		return err
 	}
-	m.options = rule.Names
+	m.options = rules
 	return nil
 }
 
 func (m Menu) pick() (string, error) {
 
 	idx, err := fuzzyfinder.Find(m.options, func(i int) string {
-		return m.options[i]
+		o := m.options[i]
+		return fmt.Sprintf("%s - %s", o.Prefix, o.Description)
 	})
 	if err != nil {
 		return "", err
 	}
-	return m.options[idx], nil
+	return m.options[idx].Prefix, nil
 }
 
 func (m Menu) getName() (string, error) {
