@@ -63,23 +63,25 @@ func (m Menu) getPrefix() string {
 	ts := now.Format("20060102")
 	n, err := m.pick()
 	if err != nil {
-		return fmt.Sprintf("%s_", ts)
+		return ts
 	}
-	return fmt.Sprintf("%s_%s_", ts, n)
+	return fmt.Sprintf("%s_%s", ts, n)
 }
 
 func (m Menu) getName() (string, error) {
 	p := m.getPrefix()
-	fmt.Printf("Enter after '%s': ", p)
+	fmt.Printf("Enter after '%s_': ", p)
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
 	n := scanner.Text()
-	n = strings.TrimPrefix(n, "_")
 	n = strings.TrimSpace(n)
 	if len(n) < 1 {
+		if len(p) == 8 {
+			return p, nil
+		}
 		return "", fmt.Errorf("input cancelled")
 	}
-	return (p + n), nil
+	return fmt.Sprintf("%s_%s", p, n), nil
 }
 
 func run(path string) int {
