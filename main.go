@@ -76,9 +76,6 @@ func (m Menu) getName() (string, error) {
 	n := scanner.Text()
 	n = strings.TrimSpace(n)
 	if len(n) < 1 {
-		if len(p) == 8 {
-			return p, nil
-		}
 		return "", fmt.Errorf("input cancelled")
 	}
 	return fmt.Sprintf("%s_%s", p, n), nil
