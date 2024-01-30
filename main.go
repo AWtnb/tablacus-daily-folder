@@ -58,18 +58,21 @@ func (m Menu) pick() (string, error) {
 	return m.options[idx].Prefix, nil
 }
 
-func (m Menu) getPrefix() string {
+func (m Menu) getPrefix() (string, error) {
 	now := time.Now()
 	ts := now.Format("20060102")
 	n, err := m.pick()
 	if err != nil {
-		return ts
+		return ts, err
 	}
-	return fmt.Sprintf("%s_%s", ts, n)
+	return fmt.Sprintf("%s_%s", ts, n), nil
 }
 
 func (m Menu) getName() (string, error) {
-	p := m.getPrefix()
+	p, err := m.getPrefix()
+	if err == fuzzyfinder.ErrAbort {
+		return "", err
+	}
 	fmt.Printf("Enter after '%s_': ", p)
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
