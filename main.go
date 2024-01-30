@@ -32,21 +32,22 @@ type Menu struct {
 	options []Rule
 }
 
-func (m *Menu) load(path string) error {
+func (m *Menu) load(path string) {
 	buf, err := os.ReadFile(path)
 	if err != nil {
-		return err
+		return
 	}
 	rules := []Rule{}
 	if err := yaml.Unmarshal(buf, &rules); err != nil {
-		return err
+		return
 	}
 	m.options = rules
-	return nil
 }
 
 func (m Menu) pick() (string, error) {
-
+	if len(m.options) < 1 {
+		return "", fmt.Errorf("no options to pick")
+	}
 	idx, err := fuzzyfinder.Find(m.options, func(i int) string {
 		o := m.options[i]
 		return fmt.Sprintf("%s - %s", o.Prefix, o.Description)
@@ -57,21 +58,18 @@ func (m Menu) pick() (string, error) {
 	return m.options[idx].Prefix, nil
 }
 
-func (m Menu) getPrefix() (string, error) {
-	n, err := m.pick()
-	if err != nil {
-		return "", err
-	}
+func (m Menu) getPrefix() string {
 	now := time.Now()
 	ts := now.Format("20060102")
-	return fmt.Sprintf("%s_%s_", ts, n), nil
+	n, err := m.pick()
+	if err != nil {
+		return fmt.Sprintf("%s_", ts)
+	}
+	return fmt.Sprintf("%s_%s_", ts, n)
 }
 
 func (m Menu) getName() (string, error) {
-	p, err := m.getPrefix()
-	if err != nil {
-		return "", err
-	}
+	p := m.getPrefix()
 	fmt.Printf("Enter after '%s': ", p)
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
@@ -86,14 +84,8 @@ func (m Menu) getName() (string, error) {
 
 func run(path string) int {
 	y := filepath.Join(path, "rule.yml")
-	if _, err := os.Stat(y); err != nil {
-		return 1
-	}
 	var menu Menu
-	err := menu.load(y)
-	if err != nil {
-		return 1
-	}
+	menu.load(y)
 	n, err := menu.getName()
 	if err != nil {
 		return 1
