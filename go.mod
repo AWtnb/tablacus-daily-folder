@@ -1,4 +1,4 @@
-module github.com/AWtnb/tablacus-mkdir-rule
+module github.com/AWtnb/tablacus-daily-folder
 
 go 1.21.4
 
