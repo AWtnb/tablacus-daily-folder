@@ -46,7 +46,7 @@ func (m *Menu) load(path string) {
 
 func (m Menu) pick() (string, error) {
 	if len(m.options) < 1 {
-		return "", fmt.Errorf("no options to pick")
+		return "", nil
 	}
 	idx, err := fuzzyfinder.Find(m.options, func(i int) string {
 		o := m.options[i]
@@ -58,44 +58,105 @@ func (m Menu) pick() (string, error) {
 	return m.options[idx].Prefix, nil
 }
 
-func (m Menu) getPrefix() (string, error) {
-	now := time.Now()
-	ts := now.Format("20060102")
-	n, err := m.pick()
-	if err != nil {
-		return ts, err
-	}
-	return fmt.Sprintf("%s_%s", ts, n), nil
+type DirName struct {
+	timestamp string
+	prefix    string
+	name      string
 }
 
-func (m Menu) getName() (string, error) {
-	p, err := m.getPrefix()
-	if err == fuzzyfinder.ErrAbort {
-		return "", err
+func (dn DirName) getFullPrefix() (prefix string) {
+	prefix = dn.timestamp + "_"
+	if 0 < len(dn.prefix) {
+		prefix = prefix + dn.prefix + "_"
 	}
-	fmt.Printf("Enter after '%s_': ", p)
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Scan()
-	n := scanner.Text()
-	n = strings.TrimSpace(n)
-	if len(n) < 1 {
-		return "", fmt.Errorf("input cancelled")
+	return
+}
+
+func (dn *DirName) setName() {
+	p := dn.getFullPrefix()
+	fmt.Printf("Enter after '%s': ", p)
+	var answer string
+	scn := bufio.NewScanner(os.Stdin)
+	scn.Scan()
+	answer = scn.Text()
+	answer = strings.TrimSpace(answer)
+	dn.name = answer
+}
+
+func (dn DirName) getName() string {
+	p := dn.getFullPrefix()
+	if len(dn.name) < 1 {
+		return strings.TrimSuffix(p, "_")
 	}
-	return fmt.Sprintf("%s_%s", p, n), nil
+	return p + dn.name
+}
+
+type WorkDir struct {
+	path string
+}
+
+func (wd WorkDir) getExample(prefix string) (examples []string) {
+	if len(prefix) < 1 {
+		return
+	}
+	items, err := os.ReadDir(wd.path)
+	if err != nil {
+		return
+	}
+	for _, item := range items {
+		n := item.Name()
+		if item.IsDir() && 9 < len(n) {
+			suf := n[9:]
+			if strings.HasPrefix(suf, prefix+"_") {
+				examples = append(examples, n)
+			}
+		}
+	}
+	return
+}
+
+func (wd WorkDir) showExamples(prefix string) {
+	es := wd.getExample(prefix)
+	if 0 < len(es) {
+		if 1 < len(es) {
+			fmt.Println("Examples:")
+		} else {
+			fmt.Println("Example:")
+		}
+		for _, e := range es {
+			fmt.Printf("- '%s'\n", e)
+		}
+	}
+}
+
+func (wd WorkDir) newDir(name string) error {
+	np := filepath.Join(wd.path, name)
+	if _, err := os.Stat(np); err == nil {
+		return fmt.Errorf("'%s' already exists in '%s'", name, wd.path)
+	}
+	return os.Mkdir(np, os.ModePerm)
 }
 
 func run(path string) int {
 	y := filepath.Join(path, "rule.yml")
 	var menu Menu
 	menu.load(y)
-	n, err := menu.getName()
-	if err != nil {
+
+	p, err := menu.pick()
+	if err != nil && err != fuzzyfinder.ErrAbort {
 		return 1
 	}
-	p := filepath.Join(path, n)
-	if _, err := os.Stat(p); err == nil {
+
+	cur := WorkDir{path: path}
+	cur.showExamples(p)
+
+	ts := time.Now().Format("20060102")
+	dn := DirName{timestamp: ts, prefix: p}
+	dn.setName()
+
+	n := dn.getName()
+	if err := cur.newDir(n); err != nil {
 		return 1
 	}
-	os.Mkdir(p, os.ModePerm)
 	return 0
 }
