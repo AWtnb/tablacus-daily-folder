@@ -72,15 +72,18 @@ func (dn DirName) getFullPrefix() (prefix string) {
 	return
 }
 
-func (dn *DirName) setName() {
+func (dn *DirName) setName() error {
 	p := dn.getFullPrefix()
 	fmt.Printf("Enter after '%s': ", p)
 	var answer string
 	scn := bufio.NewScanner(os.Stdin)
-	scn.Scan()
+	if !scn.Scan() {
+		return fmt.Errorf("abort")
+	}
 	answer = scn.Text()
 	answer = strings.TrimSpace(answer)
 	dn.name = answer
+	return nil
 }
 
 func (dn DirName) getName() string {
@@ -152,7 +155,9 @@ func run(path string) int {
 
 	ts := time.Now().Format("20060102")
 	dn := DirName{timestamp: ts, prefix: p}
-	dn.setName()
+	if err := dn.setName(); err != nil {
+		return 1
+	}
 
 	n := dn.getName()
 	if err := cur.newDir(n); err != nil {
